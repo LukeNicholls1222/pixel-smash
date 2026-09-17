@@ -73,7 +73,7 @@
     const w = world.fighters.find((x) => x.stocks > 0);
     $('winner').textContent = w ? `${w.idx + 1}P ${w.name} の かち!` : 'ひきわけ';
     $('result-sub').textContent = world.fighters.map((x) => `${x.idx + 1}P ${x.name} ${Math.round(x.percent)}% / のこり ${x.stocks}`).join('   ');
-    scene = 'result'; show('s-result'); SFX.win();
+    scene = 'result'; show('s-result'); $('announce').classList.add('hidden'); SFX.win();
   }
 
   function step() {
