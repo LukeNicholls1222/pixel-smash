@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>PIXEL SMASH</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=DotGothic16&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="640" height="360"></canvas>
+  <div id="ui">
+    <section class="screen" id="s-title">
+      <div class="logo"><span class="logo-a">PIXEL</span><span class="logo-b">SMASH</span></div>
+      <p class="tag">3にん の ファイター が いる。</p>
+      <button class="btn" id="btn-title">はじめる</button>
+      <div class="keys">
+        <div><b>1P</b> 移動 WASD ／ 攻撃 J ／ 必殺 K ／ シールド L ／ ジャンプ W か SPACE</div>
+        <div><b>2P</b> 移動 ↑↓←→ ／ 攻撃 , ／ 必殺 . ／ シールド / ／ ジャンプ ↑</div>
+        <div>ゲームパッド: A 攻撃 ／ B 必殺 ／ X・Y ジャンプ ／ L・R シールド</div>
+        <div>方向 + 攻撃 で強攻撃、方向をはじいて攻撃でスマッシュ、空中で方向 + 攻撃で空中攻撃、上 + 必殺で復帰</div>
+      </div>
+    </section>
+
+    <section class="screen hidden" id="s-select">
+      <h2>ファイターを えらぶ</h2>
+      <div class="select-row">
+        <div class="picker" id="pick-1"><div class="who">1P</div><div class="cards"></div></div>
+        <div class="picker" id="pick-2"><div class="who">2P <button class="btn tiny" id="btn-p2mode">CPU</button> <select id="cpu-level"><option value="1">よわい</option><option value="2" selected>ふつう</option><option value="3">つよい</option></select></div><div class="cards"></div></div>
+      </div>
+      <p class="sub" id="select-hint">それぞれ カードを おしてえらぶ</p>
+      <button class="btn" id="btn-fight" disabled>FIGHT!</button>
+    </section>
+
+    <section class="screen hidden" id="s-result">
+      <div class="dialog">
+        <p class="winner" id="winner"></p>
+        <p class="sub" id="result-sub"></p>
+        <button class="btn" id="btn-rematch">もういちど</button>
+        <button class="btn ghost" id="btn-select">キャラをかえる</button>
+      </div>
+    </section>
+
+    <div id="announce" class="hidden"></div>
+  </div>
+</div>
+<script src="js/const.js?v=1"></script>
+<script src="js/input.js?v=1"></script>
+<script src="js/audio.js?v=1"></script>
+<script src="js/chars.js?v=1"></script>
+<script src="js/fighter.js?v=1"></script>
+<script src="js/ai.js?v=1"></script>
+<script src="js/render.js?v=1"></script>
+<script src="js/main.js?v=1"></script>
+</body>
+</html>
