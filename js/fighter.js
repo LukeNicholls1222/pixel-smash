@@ -22,7 +22,8 @@
       this.jumpsLeft = this.c.jumps - 1; this.fastfall = false; this.helpless = false;
       this.invuln = 90; this.dropT = 0; this.chargeT = 0; this.holdT = 0;
       this.dead = false; this.respawnT = 0; this.lastHit = -1;
-      this.shake = 0; this.trail = [];
+      this.shake = 0; this.trail = []; this.wtrail = [];
+      this.ledge = null; this.ledgeT = 0; this.ledgeCd = 0;
     }
     get hurt() { return { x: this.x - K.HURT.w / 2, y: this.y - K.HURT.h, w: K.HURT.w, h: K.HURT.h }; }
     get actionable() { return ['idle', 'walk', 'run', 'air'].includes(this.state); }
@@ -64,8 +65,23 @@
       this.stateT++;
       if (this.invuln > 0) this.invuln--;
       if (this.dropT > 0) this.dropT--;
+      if (this.ledgeCd > 0) this.ledgeCd--;
       if (this.shieldStun > 0) this.shieldStun--;
       if (this.state !== 'shield') this.shieldHP = Math.min(60, this.shieldHP + 0.12);
+
+      // ---- 崖つかまり ----
+      if (this.state === 'ledge') {
+        const L = this.ledge; this.ledgeT++;
+        this.vx = 0; this.vy = 0; this.x = L.x - L.dir * 8; this.y = L.y + 22; this.facing = L.dir;
+        if (this.ledgeT > 8) {
+          const climb = () => { this.leaveLedge(); this.x = L.x + L.dir * 16; this.y = L.y; this.grounded = true; this.onPlat = null; };
+          if (inp.jP) { climb(); this.grounded = false; this.vy = this.c.jump * 0.9; this.state = 'air'; this.stateT = 0; SFX.jump(); }
+          else if (inp.u || inp.x === L.dir) { climb(); this.state = 'landing'; this.landLag = 6; this.stateT = 0; }
+          else if (inp.aP || inp.smP) { climb(); this.startMove('ftilt'); }
+          else if (inp.d || inp.x === -L.dir || this.ledgeT > 120) { this.leaveLedge(); this.y += 14; this.state = 'air'; this.stateT = 0; }
+        }
+        return;
+      }
 
       const g = this.grounded;
 
@@ -74,6 +90,7 @@
         if (g) {
           if (inp.sh && this.shieldStun === 0) { this.state = 'shield'; this.stateT = 0; this.vx = 0; }
           else if (inp.jP) { this.state = 'jumpsquat'; this.stateT = 0; }
+          else if (inp.smP) this.smashAttack(inp);
           else if (inp.aP) this.groundAttack(inp);
           else if (inp.bP) this.startMove(inp.u ? 'upspecial' : 'nspecial');
           else if (inp.d && this.onPlat && inp.dTap <= 6) { this.dropT = 10; this.grounded = false; this.onPlat = null; this.y += 2; this.state = 'air'; }
@@ -84,7 +101,8 @@
             this.state = run ? 'run' : 'walk';
           } else { this.holdT = 0; this.vx *= 0.7; if (Math.abs(this.vx) < 0.2) this.vx = 0; this.state = 'idle'; }
         } else {
-          if (inp.aP) this.airAttack(inp);
+          if (inp.smP) this.airAttackDir(inp.smx, inp.smy);
+          else if (inp.aP) this.airAttack(inp);
           else if (inp.bP) this.startMove(inp.u ? 'upspecial' : 'nspecial');
           else if (inp.jP && this.jumpsLeft > 0) { this.jumpsLeft--; this.vy = this.c.djump; this.fastfall = false; if (inp.x) this.facing = inp.x; world.fx.push({ t: 'puff', x: this.x, y: this.y, life: 10 }); SFX.jump(); }
         }
@@ -117,7 +135,9 @@
           SFX.proj();
         }
         if (md.motion && this.moveT > md.startup && this.moveT <= md.startup + md.active) {
-          this.vy = md.motion.vy; this.vx = this.facing * md.motion.vx * (inp.x === this.facing ? 1.4 : 1);
+          this.vy = md.motion.vy;
+          this.vx = inp.x ? inp.x * (md.motion.vx + 0.6) : this.facing * md.motion.vx * 0.5;
+          if (inp.x) this.facing = inp.x;
           this.grounded = false; this.onPlat = null;
           if (md.intangible) this.trail.push({ x: this.x, y: this.y, f: this.facing, life: 8 });
         }
@@ -151,6 +171,16 @@
       }
       this.x += this.vx; this.y += this.vy;
       this.trail.forEach((t) => t.life--); this.trail = this.trail.filter((t) => t.life > 0);
+
+      // ---- 崖をつかむ ----
+      if (!this.grounded && this.ledgeCd === 0 && this.vy >= -1.5 &&
+          (this.state === 'air' || this.state === 'helpless' || (this.state === 'hitstun' && this.hitstun < 8))) {
+        for (const L of K.LEDGES) {
+          const outside = L.dir > 0 ? this.x < L.x + 2 : this.x > L.x - 2;
+          if (outside && Math.abs(this.x - L.x) <= 18 && this.y >= L.y - 8 && this.y <= L.y + 44) { this.grabLedge(L, world); break; }
+        }
+        if (this.state === 'ledge') return;
+      }
 
       // ---- 着地 / 落下 ----
       if (this.grounded) {
@@ -191,11 +221,33 @@
       return null;
     }
 
+    grabLedge(L, world) {
+      this.ledge = L; this.state = 'ledge'; this.stateT = 0; this.ledgeT = 0;
+      this.vx = 0; this.vy = 0; this.move = null; this.md = null;
+      this.jumpsLeft = this.c.jumps - 1; this.helpless = false; this.fastfall = false; this.hitstun = 0; this.tumble = false;
+      this.invuln = Math.max(this.invuln, 28);
+      world.fx.push({ t: 'dust', x: L.x, y: L.y, life: 8 }); SFX.land();
+    }
+    leaveLedge() { this.ledge = null; this.ledgeCd = 30; }
+    smashAttack(inp) {
+      if (inp.smy < 0) return this.startMove('usmash');
+      if (inp.smy > 0) return this.startMove('dsmash');
+      if (inp.smx) this.facing = inp.smx;
+      this.startMove('fsmash');
+    }
+    airAttackDir(x, y) {
+      if (x === this.facing) return this.startMove('fair');
+      if (x === -this.facing) return this.startMove('bair');
+      if (y < 0) return this.startMove('uair');
+      if (y > 0) return this.startMove('dair');
+      this.startMove('nair');
+    }
     groundAttack(inp) {
-      const tapX = inp.x && ((inp.x > 0 ? inp.rTap : inp.lTap) <= 8);
+      const T = K.SMASH_TAP;
+      const tapX = inp.x && ((inp.x > 0 ? inp.rTap : inp.lTap) <= T);
       if (tapX) { this.facing = inp.x; return this.startMove('fsmash'); }
-      if (inp.u && inp.uTap <= 8) return this.startMove('usmash');
-      if (inp.d && inp.dTap <= 8) return this.startMove('dsmash');
+      if (inp.u && inp.uTap <= T) return this.startMove('usmash');
+      if (inp.d && inp.dTap <= T) return this.startMove('dsmash');
       if (inp.x) { this.facing = inp.x; return this.startMove('ftilt'); }
       if (inp.u) return this.startMove('utilt');
       if (inp.d) return this.startMove('dtilt');
@@ -218,6 +270,7 @@
         world.fx.push({ t: 'shieldhit', x: this.x, y: this.y - 20, life: 8 }); SFX.shield();
         return 'shield';
       }
+      if (this.state === 'ledge') this.leaveLedge();
       this.percent = Math.min(999, this.percent + h.dmg);
       const p = this.percent, d = h.dmg, w = this.c.weight;
       const kb = ((p / 10 + p * d / 20) * (200 / (w + 100)) * 1.4 + 18) * h.kbg + h.bkb;

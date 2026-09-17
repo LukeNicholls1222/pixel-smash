@@ -7,6 +7,8 @@
       const me = this.me, op = world.fighters.find((f) => f !== me);
       const v = { l: 0, r: 0, u: 0, d: 0, a: 0, b: 0, sh: 0, j: 0 };
       if (me.dead || !op) { this.v = v; return v; }
+      // 崖につかまったら少し待って上がる
+      if (me.state === 'ledge') { if (me.ledgeT > 16) { if (Math.random() < 0.3) v.aP = 1, v.a = 1; else v.u = 1; } this.v = v; return v; }
       const dx = op.x - me.x, dy = op.y - me.y, adx = Math.abs(dx);
       const F = K.STAGE.floor;
       const offstage = me.x < F.x - 10 || me.x > F.x + F.w + 10;
@@ -18,7 +20,7 @@
         if (me.x < cx) v.r = 1; else v.l = 1;
         if (!me.grounded && me.vy > 0) {
           if (me.jumpsLeft > 0 && me.y > F.y - 80) v.j = 1;
-          else if (me.jumpsLeft === 0 && me.state !== 'helpless' && me.state !== 'attack' && me.y > F.y - 40) { v.u = 1; v.b = 1; }
+          else if (me.jumpsLeft === 0 && me.state !== 'helpless' && me.state !== 'attack' && me.y > F.y - 60) { v.u = 1; v.b = 1; }
         }
         this.v = v; return v;
       }
@@ -56,7 +58,7 @@
       const pick = r;
       if (pick < 0.30) { v.a = 1; }
       else if (pick < 0.55) { v.a = 1; if (dx > 0) v.r = 1; else v.l = 1; }
-      else if (pick < 0.72) { v.a = 1; if (dx > 0) v.r = 1; else v.l = 1; this.smashTap = true; }
+      else if (pick < 0.72) { v.sm = 1; if (dx > 0) v.r = 1; else v.l = 1; }
       else if (pick < 0.82) { v.a = 1; v.d = 1; }
       else if (pick < 0.90) { v.j = 1; }
       else { if (dx > 0) v.l = 1; else v.r = 1; }

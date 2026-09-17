@@ -9,7 +9,7 @@
     {
       id: 'kai', name: 'カイ', desc: '剣士。射程が長く、扱いやすい。',
       weight: 100, walk: 2.0, run: 3.0, air: 2.2, airAcc: 0.28, jump: -9.6, djump: -8.8, jumps: 2, fall: 8, ffall: 13,
-      col: { body: '#3c78ff', body2: '#2050b0', skin: '#f8c090', hair: '#f8e060', acc: '#e0e0e0' }, weapon: 'sword',
+      col: { body: '#2f5fb8', body2: '#1d3c78', skin: '#e9b58c', hair: '#d9b25a', acc: '#d8dde6', glove: '#3a2a1a' }, weapon: 'sword',
       moves: {
         jab:    M(4, 3, 9, 4, 50, 2, 0.5, { x: 8, y: -24, w: 30, h: 14 }),
         ftilt:  M(7, 4, 15, 9, 42, 4, 0.9, { x: 10, y: -28, w: 34, h: 18 }),
@@ -24,13 +24,13 @@
         uair:   M(6, 6, 12, 9, 85, 4, 0.9, { x: -14, y: -60, w: 28, h: 26 }, { landing: 8 }),
         dair:   M(12, 6, 16, 12, 270, 4, 1.0, { x: -10, y: -6, w: 20, h: 26 }, { landing: 16 }),
         nspecial: M(12, 1, 20, 0, 0, 0, 0, null, { projectile: { vx: 5.5, vy: 0, life: 42, dmg: 6, angle: 45, bkb: 3, kbg: 0.6, w: 16, h: 8, kind: 'beam' } }),
-        upspecial: M(6, 14, 18, 10, 82, 5, 0.9, { x: -14, y: -52, w: 28, h: 44 }, { motion: { vy: -7.5, vx: 1.2 }, helpless: true }),
+        upspecial: M(5, 18, 16, 10, 82, 5, 0.9, { x: -14, y: -52, w: 28, h: 44 }, { motion: { vy: -8.6, vx: 1.6 }, helpless: true }),
       },
     },
     {
       id: 'goro', name: 'ゴロウ', desc: '重量級。遅いが一撃が重い。',
       weight: 128, walk: 1.5, run: 2.3, air: 1.6, airAcc: 0.22, jump: -9.2, djump: -8.4, jumps: 2, fall: 8.5, ffall: 13,
-      col: { body: '#d82800', body2: '#901800', skin: '#e8b080', hair: '#3a2010', acc: '#ffd040' }, weapon: 'fist',
+      col: { body: '#b8302a', body2: '#6e1a16', skin: '#d99a6c', hair: '#2c1a10', acc: '#e0b040', glove: '#8a1a10' }, weapon: 'fist',
       moves: {
         jab:    M(5, 3, 11, 5, 50, 3, 0.5, { x: 8, y: -26, w: 24, h: 16 }),
         ftilt:  M(9, 4, 17, 12, 42, 5, 0.95, { x: 8, y: -30, w: 30, h: 20 }),
@@ -45,13 +45,13 @@
         uair:   M(8, 6, 14, 12, 85, 5, 0.95, { x: -14, y: -62, w: 28, h: 28 }, { landing: 10 }),
         dair:   M(14, 6, 20, 16, 270, 5, 1.05, { x: -12, y: -6, w: 24, h: 26 }, { landing: 20 }),
         nspecial: M(20, 6, 30, 22, 40, 8, 1.25, { x: 6, y: -32, w: 40, h: 26 }, { charge: true }),
-        upspecial: M(7, 12, 24, 13, 85, 6, 0.95, { x: -14, y: -54, w: 30, h: 44 }, { motion: { vy: -8, vx: 0.8 }, helpless: true }),
+        upspecial: M(6, 16, 20, 13, 85, 6, 0.95, { x: -14, y: -54, w: 30, h: 44 }, { motion: { vy: -9.2, vx: 1.2 }, helpless: true }),
       },
     },
     {
       id: 'shino', name: 'シノ', desc: '忍者。速くて3段ジャンプ。軽い。',
       weight: 82, walk: 2.5, run: 3.7, air: 2.5, airAcc: 0.36, jump: -9.2, djump: -8.4, jumps: 3, fall: 8, ffall: 15,
-      col: { body: '#4a3a8a', body2: '#2a1a5a', skin: '#f0c8a0', hair: '#111', acc: '#f83060' }, weapon: 'none',
+      col: { body: '#3b3552', body2: '#241f36', skin: '#f0c9a4', hair: '#15121a', acc: '#d8324e', glove: '#241f36' }, weapon: 'none',
       moves: {
         jab:    M(2, 3, 7, 2, 55, 1, 0.4, { x: 8, y: -24, w: 22, h: 14 }),
         ftilt:  M(5, 3, 12, 7, 40, 3, 0.85, { x: 8, y: -28, w: 28, h: 16 }),
@@ -66,7 +66,7 @@
         uair:   M(4, 5, 10, 8, 85, 3, 0.85, { x: -12, y: -56, w: 26, h: 24 }, { landing: 6 }),
         dair:   M(9, 6, 14, 9, 270, 3, 1.0, { x: -10, y: -6, w: 20, h: 24 }, { landing: 12 }),
         nspecial: M(8, 1, 14, 0, 0, 0, 0, null, { projectile: { vx: 7.5, vy: 0, life: 50, dmg: 4, angle: 50, bkb: 2, kbg: 0.45, w: 10, h: 10, kind: 'star' } }),
-        upspecial: M(8, 10, 16, 0, 0, 0, 0, null, { motion: { vy: -10, vx: 1.6 }, helpless: true, intangible: true }),
+        upspecial: M(6, 14, 14, 0, 0, 0, 0, null, { motion: { vy: -11, vx: 2.4 }, helpless: true, intangible: true }),
       },
     },
   ];

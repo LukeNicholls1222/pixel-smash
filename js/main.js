@@ -1,7 +1,7 @@
 (function () {
   const K = window.K, R = window.RENDER;
   const cv = document.getElementById('game'), ctx = cv.getContext('2d');
-  ctx.imageSmoothingEnabled = false;
+  cv.width = K.W * K.DPR; cv.height = K.H * K.DPR;
   const $ = (id) => document.getElementById(id);
 
   function fit() {
@@ -57,6 +57,7 @@
     if (scene === 'title' && (e.code === 'Enter' || e.code === 'Space')) $('btn-title').click();
     if (scene === 'select' && e.code === 'Enter' && !$('btn-fight').disabled) startMatch();
     if (e.code === 'F2') world.debug = !world.debug;
+    if (e.code === 'KeyH' && scene === 'fight') $('help').classList.toggle('hidden');
   });
 
   // ---------- 試合 ----------
@@ -68,12 +69,13 @@
     inputs[1].setVirtual(ai ? {} : null);
     scene = 'fight'; show(null); startT = 90; endT = 0;
     announce('READY', 800); setTimeout(() => announce('GO!', 600), 900);
+    $('hint').classList.remove('hidden'); clearTimeout(window.__hintT); window.__hintT = setTimeout(() => $('hint').classList.add('hidden'), 6000);
   }
   function endMatch() {
     const w = world.fighters.find((x) => x.stocks > 0);
     $('winner').textContent = w ? `${w.idx + 1}P ${w.name} の かち!` : 'ひきわけ';
     $('result-sub').textContent = world.fighters.map((x) => `${x.idx + 1}P ${x.name} ${Math.round(x.percent)}% / のこり ${x.stocks}`).join('   ');
-    scene = 'result'; show('s-result'); $('announce').classList.add('hidden'); SFX.win();
+    scene = 'result'; show('s-result'); $('announce').classList.add('hidden'); $('hint').classList.add('hidden'); $('help').classList.add('hidden'); SFX.win();
   }
 
   function step() {
@@ -122,6 +124,7 @@
   }
 
   function draw() {
+    ctx.setTransform(K.DPR, 0, 0, K.DPR, 0, 0); ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0, 0, K.W, K.H);
     if (scene === 'fight' || scene === 'result') {
       R.updateCamera(world.fighters, world.shake);
