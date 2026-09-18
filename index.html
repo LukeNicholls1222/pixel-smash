@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <div id="stage">
@@ -18,7 +18,8 @@
       <p class="tag">3人のファイターで、場外まで吹っ飛ばせ。</p>
       <button class="btn" id="btn-title">はじめる</button>
       <div class="keys">
-        <div class="keyrow"><b>1P</b><span>移動 <kbd>A</kbd><kbd>D</kbd></span><span>上・下 <kbd>W</kbd><kbd>S</kbd></span><span>ジャンプ <kbd>SPACE</kbd></span><span>攻撃 <kbd>J</kbd></span><span>スマッシュ <kbd>I</kbd></span><span>必殺 <kbd>K</kbd></span><span>シールド <kbd>L</kbd></span></div>
+        <div class="keyrow"><b>1人</b><span>移動 <kbd>←</kbd><kbd>→</kbd></span><span>上・下 <kbd>↑</kbd><kbd>↓</kbd></span><span>ジャンプ <kbd>SPACE</kbd></span><span>攻撃 <kbd>Z</kbd></span><span>スマッシュ <kbd>V</kbd></span><span>必殺 <kbd>X</kbd></span><span>シールド <kbd>C</kbd></span></div>
+        <div class="keyrow"><b>1P</b><span>2人のとき。移動 <kbd>A</kbd><kbd>D</kbd></span><span>上・下 <kbd>W</kbd><kbd>S</kbd></span><span>ジャンプ <kbd>SPACE</kbd></span><span>攻撃 <kbd>J</kbd></span><span>スマッシュ <kbd>I</kbd></span><span>必殺 <kbd>K</kbd></span><span>シールド <kbd>L</kbd></span></div>
         <div class="keyrow"><b>2P</b><span>移動 <kbd>←</kbd><kbd>→</kbd></span><span>上・下 <kbd>↑</kbd><kbd>↓</kbd></span><span>ジャンプ <kbd>Enter</kbd></span><span>攻撃 <kbd>,</kbd></span><span>スマッシュ <kbd>M</kbd></span><span>必殺 <kbd>.</kbd></span><span>シールド <kbd>/</kbd></span></div>
         <div class="keyrow"><b>PAD</b><span>A 攻撃</span><span>B 必殺</span><span>X / Y ジャンプ</span><span>L / R シールド</span><span>右スティック スマッシュ</span></div>
         <div class="note">スマッシュボタン + 方向で強い一撃。上 + 必殺で復帰。崖に落ちても縁につかまれる。試合中 <kbd>H</kbd> で操作表。</div>
@@ -46,22 +47,22 @@
     <div id="hint" class="hidden"><span><kbd>SPACE</kbd> ジャンプ</span><span><kbd>J</kbd> 攻撃</span><span><kbd>I</kbd>+方向 スマッシュ</span><span><kbd>K</kbd> 必殺 / <kbd>W</kbd>+<kbd>K</kbd> 復帰</span><span><kbd>L</kbd> シールド</span><span><kbd>H</kbd> 操作表</span></div>
     <div id="help" class="hidden">
       <div class="help-col"><b>1P</b>
-        <div>A / D 移動　W 上　S 下（急降下・床すり抜け）</div><div>SPACE ジャンプ（空中でもう一度で2段）</div>
-        <div>J 攻撃　方向 + J で強攻撃</div><div>I スマッシュ　方向 + I で横・上・下スマッシュ</div>
-        <div>K 必殺　W + K で復帰技</div><div>L シールド</div><div>崖の近くで落ちるとつかまる。上 or ジャンプで上がる、J で攻撃しながら上がる</div></div>
+        <div>← → 移動　↑ 上　↓ 下（急降下・床すり抜け）　※1人のとき。2人のときは W A S D</div><div>SPACE ジャンプ（空中でもう一度で2段）</div>
+        <div>Z 攻撃　方向 + Z で強攻撃（2人のときは J）</div><div>V スマッシュ　方向 + V で横・上・下（2人のときは I）</div>
+        <div>X 必殺　↑ + X で復帰技（2人のときは K）</div><div>C シールド（2人のときは L）</div><div>崖の近くで落ちるとつかまる。↑ か ジャンプで上がる、攻撃で攻撃しながら上がる</div></div>
       <div class="help-col"><b>2P</b>
         <div>← → 移動　↑ 上　↓ 下</div><div>Enter ジャンプ</div><div>, 攻撃　M スマッシュ</div><div>. 必殺　↑ + . で復帰</div><div>/ シールド</div></div>
     </div>
     <div id="announce" class="hidden"></div>
   </div>
 </div>
-<script src="js/const.js?v=2"></script>
-<script src="js/input.js?v=2"></script>
-<script src="js/audio.js?v=2"></script>
-<script src="js/chars.js?v=2"></script>
-<script src="js/fighter.js?v=2"></script>
-<script src="js/ai.js?v=2"></script>
-<script src="js/render.js?v=2"></script>
-<script src="js/main.js?v=2"></script>
+<script src="js/const.js?v=3"></script>
+<script src="js/input.js?v=3"></script>
+<script src="js/audio.js?v=3"></script>
+<script src="js/chars.js?v=3"></script>
+<script src="js/fighter.js?v=3"></script>
+<script src="js/ai.js?v=3"></script>
+<script src="js/render.js?v=3"></script>
+<script src="js/main.js?v=3"></script>
 </body>
 </html>

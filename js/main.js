@@ -12,6 +12,8 @@
   addEventListener('resize', fit); fit();
 
   const inputs = [new INPUT.Input(0), new INPUT.Input(1)];
+  const HINT_SOLO = '<span><kbd>←→</kbd> 移動</span><span><kbd>SPACE</kbd> ジャンプ</span><span><kbd>Z</kbd> 攻撃</span><span><kbd>V</kbd>+方向 スマッシュ</span><span><kbd>X</kbd> 必殺 / <kbd>↑</kbd>+<kbd>X</kbd> 復帰</span><span><kbd>C</kbd> シールド</span><span><kbd>H</kbd> 操作表</span>';
+  const HINT_VS = '<span>1P <kbd>WASD</kbd> <kbd>SPACE</kbd> <kbd>J</kbd> <kbd>I</kbd> <kbd>K</kbd> <kbd>L</kbd></span><span>2P <kbd>←→↑↓</kbd> <kbd>Enter</kbd> <kbd>,</kbd> <kbd>M</kbd> <kbd>.</kbd> <kbd>/</kbd></span><span><kbd>H</kbd> 操作表</span>';
   const world = { fighters: [], projectiles: [], fx: [], shake: 0, debug: false, announce: (t) => announce(t) };
   let scene = 'title', f = 0, picks = [null, null], p2cpu = true, ai = null, endT = 0, startT = 0;
   // デバッグ用。コンソールから中を見られる
@@ -66,6 +68,8 @@
     world.fighters = [new Fighter(CHARS[picks[0]], 0, inputs[0]), new Fighter(CHARS[picks[1]], 1, inputs[1])];
     world.projectiles = []; world.fx = []; world.shake = 0;
     ai = p2cpu ? new AI(world.fighters[1], Number($('cpu-level').value)) : null;
+    INPUT.solo = p2cpu; // 1人のときは矢印と Z X C V も 1P で使える
+    $('hint').innerHTML = p2cpu ? HINT_SOLO : HINT_VS;
     inputs[1].setVirtual(ai ? {} : null);
     scene = 'fight'; show(null); startT = 90; endT = 0;
     announce('READY', 800); setTimeout(() => announce('GO!', 600), 900);

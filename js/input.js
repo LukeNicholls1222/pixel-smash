@@ -1,10 +1,16 @@
 // キーボードとゲームパッドを、プレイヤーごとの同じ形の入力にまとめる。
 // 上とジャンプは別のボタン。スマッシュは専用ボタン（または右スティック）でも出せる。
 (function () {
+  // 2人で遊ぶときの割り当て。1P は左手側、2P は矢印側。
   const KEYS = [
     { l: ['KeyA'], r: ['KeyD'], u: ['KeyW'], d: ['KeyS'], a: ['KeyJ'], b: ['KeyK'], sh: ['KeyL', 'ShiftLeft'], j: ['Space'], sm: ['KeyI'] },
     { l: ['ArrowLeft'], r: ['ArrowRight'], u: ['ArrowUp'], d: ['ArrowDown'], a: ['Comma'], b: ['Period'], sh: ['Slash', 'ShiftRight'], j: ['Enter', 'Numpad0'], sm: ['KeyM'] },
   ];
+  // 1人で遊ぶとき（2P が CPU）は矢印 + Z X C V も 1P で使える
+  const SOLO = {
+    l: ['KeyA', 'ArrowLeft'], r: ['KeyD', 'ArrowRight'], u: ['KeyW', 'ArrowUp'], d: ['KeyS', 'ArrowDown'],
+    a: ['KeyJ', 'KeyZ'], b: ['KeyK', 'KeyX'], sh: ['KeyL', 'ShiftLeft', 'KeyC', 'ShiftRight'], j: ['Space', 'Enter'], sm: ['KeyI', 'KeyV'],
+  };
   const down = new Set();
   const PREVENT = new Set(['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Slash', 'Enter']);
   addEventListener('keydown', (e) => { down.add(e.code); if (PREVENT.has(e.code) && !e.target.closest?.('select,input,button')) e.preventDefault(); });
@@ -22,7 +28,7 @@
     constructor(idx) { this.idx = idx; this.s = blank(); this.virtual = null; this.cPrev = { x: 0, y: 0 }; }
     setVirtual(v) { this.virtual = v; }
     read() {
-      const k = KEYS[this.idx];
+      const k = (this.idx === 0 && INPUT.solo) ? SOLO : KEYS[this.idx];
       let raw = { l: 0, r: 0, u: 0, d: 0, a: 0, b: 0, sh: 0, j: 0, sm: 0 };
       let cx = 0, cy = 0;
       if (this.virtual) raw = { ...raw, ...this.virtual };
@@ -60,5 +66,5 @@
       return n;
     }
   }
-  window.INPUT = { Input, blank, KEYS };
+  window.INPUT = { Input, blank, KEYS, solo: true };
 })();
