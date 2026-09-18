@@ -25,7 +25,8 @@
       this.shake = 0; this.trail = []; this.wtrail = [];
       this.ledge = null; this.ledgeT = 0; this.ledgeCd = 0;
     }
-    get hurt() { return { x: this.x - K.HURT.w / 2, y: this.y - K.HURT.h, w: K.HURT.w, h: K.HURT.h }; }
+    get hurtSize() { return this.c.hurt || K.HURT; }
+    get hurt() { const H = this.hurtSize; return { x: this.x - H.w / 2, y: this.y - H.h, w: H.w, h: H.h }; }
     get actionable() { return ['idle', 'walk', 'run', 'air'].includes(this.state); }
 
     // 技の当たり判定（ワールド座標）。出ていなければ null
@@ -33,7 +34,9 @@
       if (this.state !== 'attack' || !this.md || !this.md.box) return null;
       const s = this.md.startup, a = this.md.active;
       if (this.moveT <= s || this.moveT > s + a) return null;
-      const b = this.md.box;
+      // 技の判定は身長 40 を基準に書いてあるので、体格に合わせて広げる
+      const k = this.hurtSize.h / 40;
+      const b = { x: this.md.box.x * k, y: this.md.box.y * k, w: this.md.box.w * k, h: this.md.box.h * k };
       const x = this.facing > 0 ? this.x + b.x : this.x - b.x - b.w;
       return { x, y: this.y + b.y, w: b.w, h: b.h, dmg: this.moveDmg(), angle: this.md.angle, bkb: this.md.bkb, kbg: this.md.kbg };
     }

@@ -1,0 +1,6 @@
+Unit sprites in this folder are from OpenDuelyst (Counterplay Games),
+released under Creative Commons Zero v1.0 Universal (CC0).
+Source: https://github.com/open-duelyst/duelyst  (app/resources/units/)
+  knight.png = boss_chaosknight
+  golem.png  = neutral_moltengolem
+  wolf.png   = f6_fenrirwerewolf

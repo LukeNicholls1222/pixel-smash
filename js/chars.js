@@ -7,9 +7,10 @@
 
   const CHARS = [
     {
-      id: 'kai', name: 'カイ', desc: '剣士。射程が長く、扱いやすい。',
+      id: 'kai', name: 'カオスナイト', desc: '大剣の騎士。射程が長く扱いやすい。',
+      hurt: { w: 26, h: 50 }, art: { atlas: 'knight', src: 'assets/duelyst/knight.png', height: 54, clips: { idle: { name: 'idle', fps: 10 }, run: { name: 'run', fps: 14 }, attack1: { name: 'attack', hit: 0.45 }, hurt: { name: 'hit' }, death: { name: 'death' } } },
       weight: 100, walk: 2.0, run: 3.0, air: 2.2, airAcc: 0.28, jump: -9.6, djump: -8.8, jumps: 2, fall: 8, ffall: 13,
-      col: { body: '#2f5fb8', body2: '#1d3c78', skin: '#e9b58c', hair: '#d9b25a', acc: '#d8dde6', glove: '#3a2a1a' }, weapon: 'sword',
+      col: { body: '#2f5fb8', body2: '#1d3c78', skin: '#e9b58c', hair: '#d9b25a', acc: '#d8dde6', glove: '#3a2a1a' }, weapon: 'none',
       moves: {
         jab:    M(4, 3, 9, 4, 50, 2, 0.5, { x: 8, y: -24, w: 30, h: 14 }),
         ftilt:  M(7, 4, 15, 9, 42, 4, 0.9, { x: 10, y: -28, w: 34, h: 18 }),
@@ -28,9 +29,10 @@
       },
     },
     {
-      id: 'goro', name: 'ゴロウ', desc: '重量級。遅いが一撃が重い。',
+      id: 'goro', name: 'モルテンゴーレム', desc: '溶岩の巨人。遅いが一撃が重い。',
+      hurt: { w: 34, h: 58 }, art: { atlas: 'golem', src: 'assets/duelyst/golem.png', height: 60, clips: { idle: { name: 'idle', fps: 10 }, run: { name: 'run', fps: 12 }, attack1: { name: 'attack', hit: 0.5 }, hurt: { name: 'hit' }, death: { name: 'death' } } },
       weight: 128, walk: 1.5, run: 2.3, air: 1.6, airAcc: 0.22, jump: -9.2, djump: -8.4, jumps: 2, fall: 8.5, ffall: 13,
-      col: { body: '#b8302a', body2: '#6e1a16', skin: '#d99a6c', hair: '#2c1a10', acc: '#e0b040', glove: '#8a1a10' }, weapon: 'fist',
+      col: { body: '#b8302a', body2: '#6e1a16', skin: '#d99a6c', hair: '#2c1a10', acc: '#e0b040', glove: '#8a1a10' }, weapon: 'none',
       moves: {
         jab:    M(5, 3, 11, 5, 50, 3, 0.5, { x: 8, y: -26, w: 24, h: 16 }),
         ftilt:  M(9, 4, 17, 12, 42, 5, 0.95, { x: 8, y: -30, w: 30, h: 20 }),
@@ -49,7 +51,8 @@
       },
     },
     {
-      id: 'shino', name: 'シノ', desc: '忍者。速くて3段ジャンプ。軽い。',
+      id: 'shino', name: 'フェンリル', desc: '人狼。速くて3段ジャンプ。軽い。',
+      hurt: { w: 28, h: 46 }, art: { atlas: 'wolf', src: 'assets/duelyst/wolf.png', height: 50, clips: { idle: { name: 'idle', fps: 10 }, run: { name: 'run', fps: 14 }, attack1: { name: 'attack', hit: 0.45 }, hurt: { name: 'hit' }, death: { name: 'death' } } },
       weight: 82, walk: 2.5, run: 3.7, air: 2.5, airAcc: 0.36, jump: -9.2, djump: -8.4, jumps: 3, fall: 8, ffall: 15,
       col: { body: '#3b3552', body2: '#241f36', skin: '#f0c9a4', hair: '#15121a', acc: '#d8324e', glove: '#241f36' }, weapon: 'none',
       moves: {

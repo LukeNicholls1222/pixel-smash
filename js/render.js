@@ -335,27 +335,30 @@
     const p = pose(fg, f);
     // 影
     const gy = groundUnder(fg);
-    if (gy !== null) { const h = Math.max(0, gy - fg.y), k = Math.max(0.25, 1 - h / 160); ctx.fillStyle = `rgba(0,0,0,${0.35 * k})`; ctx.beginPath(); ctx.ellipse(fg.x, gy + 1, 11 * k, 3.2 * k, 0, 0, PI * 2); ctx.fill(); }
+    const HS = fg.hurtSize || K.HURT;
+    if (gy !== null) { const h = Math.max(0, gy - fg.y), k = Math.max(0.25, 1 - h / 160); ctx.fillStyle = `rgba(0,0,0,${0.35 * k})`; ctx.beginPath(); ctx.ellipse(fg.x, gy + 1, HS.w * 0.55 * k, 3.4 * k, 0, 0, PI * 2); ctx.fill(); }
     // 残像（シノの上B）
-    fg.trail.forEach((t) => body(ctx, fg, POSES.jump, t.x, t.y, t.f, t.life / 20));
+    fg.trail.forEach((t) => { if (!(fg.c.art && SPRITES.draw(ctx, fg, f, t.x, t.y, t.f, t.life / 20, 'jump', 0))) body(ctx, fg, POSES.jump, t.x, t.y, t.f, t.life / 20); });
     // 武器の軌跡
     if (fg.wtrail && fg.wtrail.length > 1) {
       ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
       ctx.beginPath(); fg.wtrail.forEach((w, i) => (i ? ctx.lineTo(w[0], w[1]) : ctx.moveTo(w[0], w[1]))); ctx.stroke();
     }
     const blink = fg.invuln > 0 && (f >> 2) % 2 === 0;
-    const info = body(ctx, fg, p, fg.x, fg.y, fg.facing, blink ? 0.45 : 1);
+    let info = null;
+    if (fg.c.art) { if (!SPRITES.draw(ctx, fg, f, fg.x, fg.y, fg.facing, blink ? 0.45 : 1)) info = body(ctx, fg, p, fg.x, fg.y, fg.facing, blink ? 0.45 : 1); }
+    else info = body(ctx, fg, p, fg.x, fg.y, fg.facing, blink ? 0.45 : 1);
     // 技中は手の位置を記録して軌跡にする
     const active = fg.state === 'attack' && fg.md && fg.moveT > fg.md.startup && fg.moveT <= fg.md.startup + fg.md.active;
-    if (active) { const hx = fg.x + info.hand[0] * fg.facing, hy = fg.y - p.crouch + info.hand[1]; fg.wtrail.push([hx, hy]); if (fg.wtrail.length > 5) fg.wtrail.shift(); }
+    if (active && info) { const hx = fg.x + info.hand[0] * fg.facing, hy = fg.y - p.crouch + info.hand[1]; fg.wtrail.push([hx, hy]); if (fg.wtrail.length > 5) fg.wtrail.shift(); }
     else fg.wtrail.length = 0;
     // シールド
     if (fg.state === 'shield') {
-      const r = 15 + (fg.shieldHP / 60) * 14;
-      const g = ctx.createRadialGradient(fg.x, fg.y - 22, r * 0.2, fg.x, fg.y - 22, r);
+      const r = HS.h * 0.42 + (fg.shieldHP / 60) * 12, sy = fg.y - HS.h / 2;
+      const g = ctx.createRadialGradient(fg.x, sy, r * 0.2, fg.x, sy, r);
       const col = fg.idx === 0 ? '255,190,40' : '70,140,255';
       g.addColorStop(0, `rgba(${col},0.1)`); g.addColorStop(0.85, `rgba(${col},0.35)`); g.addColorStop(1, `rgba(${col},0.7)`);
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fg.x, fg.y - 22, r, 0, PI * 2); ctx.fill();
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fg.x, sy, r, 0, PI * 2); ctx.fill();
     }
     // ため
     if (fg.state === 'attack' && fg.md && fg.md.charge && fg.chargeT > 0) {
@@ -363,7 +366,8 @@
       g.addColorStop(0, 'rgba(255,240,180,0.9)'); g.addColorStop(1, 'rgba(255,140,40,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(fg.x + fg.facing * 14, fg.y - 28, r, 0, PI * 2); ctx.fill();
     }
     // 1P/2P マーカー
-    ctx.fillStyle = fg.idx === 0 ? '#ffc23a' : '#4a8cff'; ctx.beginPath(); ctx.moveTo(fg.x - 5, fg.y - 60); ctx.lineTo(fg.x + 5, fg.y - 60); ctx.lineTo(fg.x, fg.y - 54); ctx.closePath(); ctx.fill();
+    const my = fg.y - HS.h - 14;
+    ctx.fillStyle = fg.idx === 0 ? '#ffc23a' : '#4a8cff'; ctx.beginPath(); ctx.moveTo(fg.x - 5, my); ctx.lineTo(fg.x + 5, my); ctx.lineTo(fg.x, my + 6); ctx.closePath(); ctx.fill();
     if (world.debug) { const h = fg.hitbox(); if (h) { ctx.fillStyle = 'rgba(255,0,0,.35)'; ctx.fillRect(h.x, h.y, h.w, h.h); } const u = fg.hurt; ctx.strokeStyle = 'rgba(0,255,0,.6)'; ctx.strokeRect(u.x, u.y, u.w, u.h); }
   }
 
@@ -409,7 +413,11 @@
       ctx.fillStyle = 'rgba(10,12,24,0.72)'; roundRect(ctx, x, y, w, h, 8); ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = i === 0 ? '#ffc23a' : '#4a8cff'; roundRect(ctx, x, y, w, 4, 2); ctx.fill();
-      ctx.save(); ctx.translate(x + 22, y + 53); ctx.scale(0.92, 0.92); body(ctx, fg, POSES.idle, 0, 0, 1); ctx.restore();
+      ctx.save(); roundRect(ctx, x + 2, y + 5, 40, h - 7, 6); ctx.clip();
+      const ph = fg.c.art ? (fg.c.art.height || 48) : 49, ps = 44 / ph;
+      ctx.translate(x + 22, y + 52); ctx.scale(ps, ps);
+      if (!(fg.c.art && SPRITES.draw(ctx, { c: fg.c, state: 'idle', stateT: 0, idx: 0 }, 0, 0, 0, 1, 1, 'idle', 0))) body(ctx, fg, POSES.idle, 0, 0, 1);
+      ctx.restore();
       ctx.textAlign = 'left'; ctx.fillStyle = '#e8ecf4'; ctx.font = '700 10px "Noto Sans JP", system-ui, sans-serif'; ctx.fillText(`${i + 1}P  ${fg.name}`, x + 46, y + 18);
       const pc = Math.round(fg.percent), col = pc < 50 ? '#ffffff' : pc < 100 ? '#ffd45a' : pc < 150 ? '#ff8a3a' : '#ff3a3a';
       ctx.fillStyle = col; ctx.font = '900 24px "Noto Sans JP", system-ui, sans-serif'; ctx.fillText(`${pc}`, x + 46, y + 45);
@@ -418,10 +426,11 @@
     });
   }
   function portrait(canvas, ch) {
-    const ctx = canvas.getContext('2d'); const s = canvas.height / 58;
+    const ctx = canvas.getContext('2d'); const s = canvas.height * 0.86 / (ch.art ? (ch.art.height || 48) : 58);
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save(); ctx.translate(canvas.width / 2, canvas.height - 3 * s); ctx.scale(s, s);
-    body(ctx, { c: ch, trail: [], wtrail: [] }, POSES.idle, 0, 0, 1);
+    const dummy = { c: ch, trail: [], wtrail: [], state: 'idle', stateT: 0, idx: 0 };
+    if (!(ch.art && SPRITES.draw(ctx, dummy, 0, 0, 0, 1, 1, 'idle', 0))) body(ctx, dummy, POSES.idle, 0, 0, 1);
     ctx.restore();
   }
 

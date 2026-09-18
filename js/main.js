@@ -12,6 +12,7 @@
   addEventListener('resize', fit); fit();
 
   const inputs = [new INPUT.Input(0), new INPUT.Input(1)];
+  CHARS.forEach((ch) => { if (ch.art) SPRITES.load(ch.art); });
   const HINT_SOLO = '<span><kbd>←→</kbd> 移動</span><span><kbd>SPACE</kbd> ジャンプ</span><span><kbd>Z</kbd> 攻撃</span><span><kbd>V</kbd>+方向 スマッシュ</span><span><kbd>X</kbd> 必殺 / <kbd>↑</kbd>+<kbd>X</kbd> 復帰</span><span><kbd>C</kbd> シールド</span><span><kbd>H</kbd> 操作表</span>';
   const HINT_VS = '<span>1P <kbd>WASD</kbd> <kbd>SPACE</kbd> <kbd>J</kbd> <kbd>I</kbd> <kbd>K</kbd> <kbd>L</kbd></span><span>2P <kbd>←→↑↓</kbd> <kbd>Enter</kbd> <kbd>,</kbd> <kbd>M</kbd> <kbd>.</kbd> <kbd>/</kbd></span><span><kbd>H</kbd> 操作表</span>';
   const world = { fighters: [], projectiles: [], fx: [], shake: 0, debug: false, announce: (t) => announce(t) };
