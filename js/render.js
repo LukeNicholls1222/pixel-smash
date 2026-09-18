@@ -405,6 +405,16 @@
     });
   }
 
+  // 3D のときのエフェクト。ワールド座標を画面に投影して、その場で描く
+  function effectsProjected(ctx, fx, project, zoom) {
+    fx.forEach((e) => {
+      const [px, py] = project(e.x, e.y);
+      ctx.save(); ctx.translate(px, py); ctx.scale(zoom, zoom); ctx.translate(-e.x, -e.y);
+      effects(ctx, [e]);
+      ctx.restore();
+    });
+  }
+
   // ---------- HUD ----------
   function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); }
   function hud(ctx, fs) {
@@ -414,9 +424,13 @@
       ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = i === 0 ? '#ffc23a' : '#4a8cff'; roundRect(ctx, x, y, w, 4, 2); ctx.fill();
       ctx.save(); roundRect(ctx, x + 2, y + 5, 40, h - 7, 6); ctx.clip();
-      const ph = fg.c.art ? (fg.c.art.height || 48) : 49, ps = 44 / ph;
-      ctx.translate(x + 22, y + 52); ctx.scale(ps, ps);
-      if (!(fg.c.art && SPRITES.draw(ctx, { c: fg.c, state: 'idle', stateT: 0, idx: 0 }, 0, 0, 0, 1, 1, 'idle', 0))) body(ctx, fg, POSES.idle, 0, 0, 1);
+      const p3 = fg.c.model && window.R3D && window.R3D.ready ? window.R3D.portrait(fg.c.model, 160) : null;
+      if (p3) ctx.drawImage(p3, x + 2, y + 4, 40, 50);
+      else {
+        const ph = fg.c.art ? (fg.c.art.height || 48) : 49, ps = 44 / ph;
+        ctx.translate(x + 22, y + 52); ctx.scale(ps, ps);
+        if (!(fg.c.art && SPRITES.draw(ctx, { c: fg.c, state: 'idle', stateT: 0, idx: 0 }, 0, 0, 0, 1, 1, 'idle', 0))) body(ctx, fg, POSES.idle, 0, 0, 1);
+      }
       ctx.restore();
       ctx.textAlign = 'left'; ctx.fillStyle = '#e8ecf4'; ctx.font = '700 10px "Noto Sans JP", system-ui, sans-serif'; ctx.fillText(`${i + 1}P  ${fg.name}`, x + 46, y + 18);
       const pc = Math.round(fg.percent), col = pc < 50 ? '#ffffff' : pc < 100 ? '#ffd45a' : pc < 150 ? '#ff8a3a' : '#ff3a3a';
@@ -426,6 +440,10 @@
     });
   }
   function portrait(canvas, ch) {
+    if (ch.model && window.R3D && window.R3D.ready) {
+      const draw3 = (img) => { const c = canvas.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, canvas.width, canvas.height); c.drawImage(img, 0, 0, canvas.width, canvas.height); };
+      const img = window.R3D.portrait(ch.model, 160, draw3); if (img) draw3(img); return;
+    }
     const ctx = canvas.getContext('2d'); const s = canvas.height * 0.86 / (ch.art ? (ch.art.height || 48) : 58);
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save(); ctx.translate(canvas.width / 2, canvas.height - 3 * s); ctx.scale(s, s);
@@ -434,5 +452,5 @@
     ctx.restore();
   }
 
-  window.RENDER = { cam, updateCamera, begin, end, stage, fighter, projectiles, effects, hud, portrait, body, POSES };
+  window.RENDER = { cam, updateCamera, begin, end, stage, fighter, projectiles, effects, effectsProjected, hud, portrait, body, POSES };
 })();

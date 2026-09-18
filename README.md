@@ -2,7 +2,23 @@
 
 ブラウザで動くスマブラ風の2D対戦。依存ライブラリなし、`index.html` を開けば動く。
 
-## キャラの画像について
+## 3D モデルについて
+
+対戦画面は three.js による 3D 描画。動きと当たり判定は 2D のまま、見た目だけ 3D にしている。
+3体のモンスターは [Quaternius](https://quaternius.com) の「Ultimate Monsters」で、
+**CC0 1.0（パブリックドメイン）** として公開されていたもの。詳細は `assets/models/LICENSE.txt`。
+
+| 表示名 | モデル |
+|---|---|
+| オーク | Orc |
+| イエティ | Yeti |
+| デーモン | Blue Demon |
+
+`js/chars.js` の `model.clips` が状態とアニメの対応表。同じパックの他のモンスター（45体）も
+同じ骨と同じアニメ名なので、`.glb` を `assets/models/` に置いて `src` を変えるだけで差し替えられる。
+WebGL が使えない環境では 2D のスプライト描画にそのまま切り替わる。
+
+## 2D 版の画像について
 
 3体の怪物は [OpenDuelyst](https://github.com/open-duelyst/duelyst)（Counterplay Games）のユニット画像で、
 **CC0 1.0（パブリックドメイン）** で公開されているものを使っている。詳細は `assets/duelyst/LICENSE.txt`。

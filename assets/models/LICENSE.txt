@@ -1,0 +1,6 @@
+3D monster models in this folder are from "Ultimate Monsters" by Quaternius,
+obtained under the CC0 1.0 Universal (Public Domain) dedication that the pack
+was published with (pack page: https://quaternius.com/packs/ultimatemonsters.html,
+mirrored with CC0 label at https://poly.pizza/bundle/Ultimate-Monsters-Bundle-5oyGWAmOB6).
+  orc.glb, yeti.glb, demon.glb
+Credit (not required): Quaternius - https://quaternius.com

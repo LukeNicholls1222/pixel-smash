@@ -35,7 +35,7 @@
       const box = $(`pick-${pi + 1}`).querySelector('.cards'); box.innerHTML = '';
       CHARS.forEach((ch, ci) => {
         const card = document.createElement('div'); card.className = 'card';
-        const c = document.createElement('canvas'); c.width = 24; c.height = 32; R.portrait(c, ch);
+        const c = document.createElement('canvas'); c.width = 96; c.height = 120; R.portrait(c, ch);
         card.appendChild(c);
         const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = ch.name; card.appendChild(nm);
         const ds = document.createElement('div'); ds.className = 'ds'; ds.textContent = ch.desc; card.appendChild(ds);
@@ -68,6 +68,7 @@
     SFX.unlock(); SFX.go();
     world.fighters = [new Fighter(CHARS[picks[0]], 0, inputs[0]), new Fighter(CHARS[picks[1]], 1, inputs[1])];
     world.projectiles = []; world.fx = []; world.shake = 0;
+    if (window.R3D && window.R3D.reset) window.R3D.reset();
     ai = p2cpu ? new AI(world.fighters[1], Number($('cpu-level').value)) : null;
     INPUT.solo = p2cpu; // 1人のときは矢印と Z X C V も 1P で使える
     $('hint').innerHTML = p2cpu ? HINT_SOLO : HINT_VS;
@@ -131,18 +132,26 @@
   function draw() {
     ctx.setTransform(K.DPR, 0, 0, K.DPR, 0, 0); ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0, 0, K.W, K.H);
+    const gl = window.R3D && window.R3D.ready;
     if (scene === 'fight' || scene === 'result') {
       R.updateCamera(world.fighters, world.shake);
-      R.begin(ctx);
-      R.stage(ctx, f);
-      R.projectiles(ctx, world.projectiles);
-      world.fighters.forEach((fg) => R.fighter(ctx, fg, f, world));
-      R.effects(ctx, world.fx);
-      R.end(ctx);
+      if (gl) {
+        window.R3D.draw(world, R.cam, f);
+        R.effectsProjected(ctx, world.fx, window.R3D.project, R.cam.z);
+        if (world.debug) { R.begin(ctx); world.fighters.forEach((fg) => { const h = fg.hitbox(); if (h) { ctx.fillStyle = 'rgba(255,0,0,.35)'; ctx.fillRect(h.x, h.y, h.w, h.h); } const u = fg.hurt; ctx.strokeStyle = 'rgba(0,255,0,.6)'; ctx.strokeRect(u.x, u.y, u.w, u.h); }); R.end(ctx); }
+      } else {
+        R.begin(ctx);
+        R.stage(ctx, f);
+        R.projectiles(ctx, world.projectiles);
+        world.fighters.forEach((fg) => R.fighter(ctx, fg, f, world));
+        R.effects(ctx, world.fx);
+        R.end(ctx);
+      }
       R.hud(ctx, world.fighters);
     } else {
       R.cam.x = 320; R.cam.y = 200; R.cam.z = 1;
-      R.begin(ctx); R.stage(ctx, f); R.end(ctx);
+      if (gl) window.R3D.draw(world, R.cam, f);
+      else { R.begin(ctx); R.stage(ctx, f); R.end(ctx); }
     }
   }
 
