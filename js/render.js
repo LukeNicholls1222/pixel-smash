@@ -135,100 +135,190 @@
   }
 
   // ---------- 人体 ----------
-  function limb(ctx, x0, y0, x1, y1, w, col, outline) {
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (outline) { ctx.strokeStyle = 'rgba(15,12,20,0.95)'; ctx.lineWidth = w + 2.2; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
-    else {
-      ctx.strokeStyle = col; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = Math.max(1, w * 0.35); ctx.beginPath(); ctx.moveTo(x0 - 1, y0 - 0.5); ctx.lineTo(x1 - 1, y1 - 0.5); ctx.stroke();
-    }
-  }
-  function shade(hex, k) { // 明るさ調整
+  // 実際の人の比率（頭身 6.3）に寄せた骨格。手足は先に向かって細くなる円柱、
+  // 光は画面の左上から。顔は 3/4 向きで両目を描く。
+  function shade(hex, k) {
     const n = parseInt(hex.slice(1), 16); let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
     r = Math.max(0, Math.min(255, r * k)); g = Math.max(0, Math.min(255, g * k)); b = Math.max(0, Math.min(255, b * k));
     return `rgb(${r | 0},${g | 0},${b | 0})`;
   }
-  function body(ctx, fg, p, x, y, facing, alpha = 1) {
-    const c = fg.c.col, wp = fg.c.weapon;
-    ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(x, y - p.crouch); ctx.scale(facing, 1);
-    ctx.rotate(p.spin || 0); ctx.rotate(p.lean * 0.5);
-    const hip = [0, -19], chest = [0, -33];
-    const knee = (t) => [hip[0] + rot(10.5, t)[0], hip[1] + rot(10.5, t)[1]];
-    const foot = (t, k) => { const kn = knee(t); const r = rot(10, t + k); return [kn, [kn[0] + r[0], kn[1] + r[1]]]; };
-    const elbow = (sx, a) => [sx + rot(9, a)[0], chest[1] + 2 + rot(9, a)[1]];
-    const hand = (sx, a, e) => { const el = elbow(sx, a); const r = rot(8.5, a + e); return [el, [el[0] + r[0], el[1] + r[1]]]; };
-    const [knB, ftB] = foot(p.tB, p.kB), [knF, ftF] = foot(p.tF, p.kF);
-    const [elB, hdB] = hand(-3, p.aB, p.eB), [elF, hdF] = hand(3, p.aF + (p.spin ? 0 : 0), p.eF);
-    for (const outline of [true, false]) {
-      // 後ろの脚
-      limb(ctx, hip[0] - 2, hip[1], knB[0], knB[1], 6, shade(c.body2, 0.85), outline);
-      limb(ctx, knB[0], knB[1], ftB[0], ftB[1], 5, shade(c.body2, 0.8), outline);
-      // 後ろの腕
-      limb(ctx, -3, chest[1] + 2, elB[0], elB[1], 5, shade(c.body, 0.8), outline);
-      limb(ctx, elB[0], elB[1], hdB[0], hdB[1], 4.5, shade(c.skin, 0.85), outline);
-      if (!outline) fist(ctx, hdB, c, wp, 0.85);
-      // 胴
-      if (outline) { ctx.fillStyle = 'rgba(15,12,20,0.95)'; torsoPath(ctx, 1.4); ctx.fill(); }
-      else { const g = ctx.createLinearGradient(-7, -33, 7, -19); g.addColorStop(0, shade(c.body, 1.15)); g.addColorStop(0.55, c.body); g.addColorStop(1, shade(c.body, 0.7)); ctx.fillStyle = g; torsoPath(ctx, 0); ctx.fill();
-        ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(-5, -22, 10, 3); }
-      // 前の脚
-      limb(ctx, hip[0] + 2, hip[1], knF[0], knF[1], 6, c.body2, outline);
-      limb(ctx, knF[0], knF[1], ftF[0], ftF[1], 5, shade(c.body2, 0.95), outline);
-      if (!outline) { shoe(ctx, ftB, p.tB + p.kB, c); shoe(ctx, ftF, p.tF + p.kF, c); }
-      // 頭
-      head(ctx, fg, p, outline);
-      // 前の腕
-      limb(ctx, 3, chest[1] + 2, elF[0], elF[1], 5, c.body, outline);
-      limb(ctx, elF[0], elF[1], hdF[0], hdF[1], 4.5, c.skin, outline);
-      if (!outline) fist(ctx, hdF, c, wp, 1);
-      // 武器
-      if (wp === 'sword') sword(ctx, hdF, p.aF + p.eF + p.wpn, c, outline);
+  const OUT = 'rgba(14,10,16,0.92)';
+  let MODE = 'fill', LX = -1;
+  // 先細りの円柱。p0 が根元、p1 が先。
+  function cap(ctx, p0, p1, w0, w1, col) {
+    const dx = p1[0] - p0[0], dy = p1[1] - p0[1], L = Math.hypot(dx, dy) || 1;
+    let nx = -dy / L, ny = dx / L;
+    if (nx * LX + ny * -0.7 < 0) { nx = -nx; ny = -ny; }   // 光の当たる側を決める
+    if (MODE === 'outline') { w0 += 1.1; w1 += 1.1; ctx.fillStyle = OUT; }
+    else {
+      const g = ctx.createLinearGradient(p0[0] + nx * w0, p0[1] + ny * w0, p0[0] - nx * w0, p0[1] - ny * w0);
+      g.addColorStop(0, shade(col, 1.28)); g.addColorStop(0.45, col); g.addColorStop(1, shade(col, 0.58));
+      ctx.fillStyle = g;
     }
+    ctx.beginPath();
+    ctx.moveTo(p0[0] + nx * w0, p0[1] + ny * w0); ctx.lineTo(p1[0] + nx * w1, p1[1] + ny * w1);
+    ctx.lineTo(p1[0] - nx * w1, p1[1] - ny * w1); ctx.lineTo(p0[0] - nx * w0, p0[1] - ny * w0); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(p0[0], p0[1], w0, 0, PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p1[0], p1[1], w1, 0, PI * 2); ctx.fill();
+  }
+  function poly(ctx, pts, col, grad) {
+    if (MODE === 'outline') { ctx.fillStyle = OUT; ctx.lineWidth = 2.2; ctx.strokeStyle = OUT; }
+    else if (grad) ctx.fillStyle = grad; else ctx.fillStyle = col;
+    ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1]))); ctx.closePath(); ctx.fill();
+    if (MODE === 'outline') ctx.stroke();
+  }
+  function joint(ctx, pt, r) { // 関節の影
+    if (MODE === 'outline') return;
+    const g = ctx.createRadialGradient(pt[0], pt[1], 0, pt[0], pt[1], r); g.addColorStop(0, 'rgba(0,0,0,0.22)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pt[0], pt[1], r, 0, PI * 2); ctx.fill();
+  }
+
+  function body(ctx, fg, p, x, y, facing, alpha = 1) {
+    const c = fg.c.col, id = fg.c.id, wp = fg.c.weapon;
+    ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(x, y - p.crouch); ctx.scale(facing, 1); ctx.rotate(p.spin || 0);
+    LX = -1; // 反転後に画面左上から光が当たる
+    // ---- 骨格 ----
+    const hip = [0, -21];
+    const R = (len, ang) => [Math.sin(ang) * len, Math.cos(ang) * len];
+    const knee = (t) => { const r = R(10.5, t); return [hip[0] + r[0], hip[1] + r[1]]; };
+    const foot = (t, k) => { const kn = knee(t), r = R(10.5, t + k); return [kn, [kn[0] + r[0], kn[1] + r[1]]]; };
+    const [knB, ftB] = foot(p.tB, p.kB), [knF, ftF] = foot(p.tF, p.kF);
+    // 上半身は腰でひねる
+    const tw = p.lean * 0.9, cx = 0, cy = -27;
+    const T = (q) => { const dx = q[0] - cx, dy = q[1] - cy; return [cx + dx * Math.cos(tw) - dy * Math.sin(tw), cy + dx * Math.sin(tw) + dy * Math.cos(tw)]; };
+    const shB = T([-4.6, -36]), shF = T([4.6, -36]);
+    const arm = (sh, a, e) => { const el = [sh[0] + R(9.5, a)[0], sh[1] + R(9.5, a)[1]]; const r = R(9, a + e); return [el, [el[0] + r[0], el[1] + r[1]]]; };
+    const [elB, hdB] = arm(shB, p.aB, p.eB), [elF, hdF] = arm(shF, p.aF, p.eF);
+    const heavy = id === 'goro';
+    const skinArm = heavy || id === 'kai' ? c.skin : c.body;   // シノは袖あり
+    const sleeve = id === 'kai' ? c.body : heavy ? null : c.body;
+
+    for (MODE of ['outline', 'fill']) {
+      // 後ろの腕
+      if (sleeve) cap(ctx, shB, elB, heavy ? 4.6 : 3.6, 3.0, shade(sleeve, 0.8));
+      else cap(ctx, shB, elB, 4.6, 3.4, shade(c.skin, 0.8));
+      cap(ctx, elB, hdB, 3.0, 2.3, shade(skinArm, 0.8));
+      if (MODE === 'fill') hand(ctx, hdB, c, wp, 0.82);
+      // 後ろの脚
+      cap(ctx, [hip[0] - 2.6, hip[1]], knB, heavy ? 4.8 : 4.0, 3.0, shade(c.body2, 0.8));
+      cap(ctx, knB, ftB, 3.0, 2.2, shade(c.body2, 0.78));
+      if (MODE === 'fill') shoeR(ctx, ftB, p.tB + p.kB, c, 0.85);
+      // 骨盤とベルト
+      poly(ctx, [[-5.4, -20], [5.4, -20], [5.0, -26.5], [-5.0, -26.5]], c.body2, MODE === 'fill' ? lin(ctx, -5, 5, shade(c.body2, 1.15), shade(c.body2, 0.7)) : null);
+      poly(ctx, [T([-5.0, -26.5]), T([5.0, -26.5]), T([5.0, -28.2]), T([-5.0, -28.2])], id === 'kai' ? '#5a3a20' : heavy ? '#2a2a30' : c.acc);
+      // 胴
+      const chest = [T([-4.9, -28.2]), T([4.9, -28.2]), T([6.4, -35.2]), T([3.2, -37.2]), T([-3.2, -37.2]), T([-6.4, -35.2])];
+      poly(ctx, chest, c.body, MODE === 'fill' ? lin(ctx, -6, 6, shade(c.body, 1.2), shade(c.body, 0.62)) : null);
+      if (MODE === 'fill') clothDetail(ctx, id, c, T);
+      // 前の脚
+      cap(ctx, [hip[0] + 2.6, hip[1]], knF, heavy ? 4.8 : 4.0, 3.0, c.body2);
+      cap(ctx, knF, ftF, 3.0, 2.2, shade(c.body2, 0.95));
+      if (MODE === 'fill') { shoeR(ctx, ftF, p.tF + p.kF, c, 1); joint(ctx, knF, 3.2); joint(ctx, knB, 3.2); }
+      // 首と頭
+      cap(ctx, T([0, -36.2]), T([0.4, -40]), heavy ? 2.6 : 1.9, heavy ? 2.4 : 1.7, shade(c.skin, 0.9));
+      if (MODE === 'fill') { const g = ctx.createRadialGradient(...T([0, -36]), 0, ...T([0, -36]), 6); g.addColorStop(0, 'rgba(0,0,0,0.3)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(...T([0, -35]), 6, 0, PI * 2); ctx.fill(); }
+      headR(ctx, fg, p, T([0.6, -44.8]), tw);
+      // 前の腕
+      if (sleeve) cap(ctx, shF, elF, heavy ? 4.6 : 3.6, 3.0, sleeve);
+      else cap(ctx, shF, elF, 4.8, 3.5, c.skin);
+      cap(ctx, elF, hdF, 3.0, 2.3, skinArm);
+      if (MODE === 'fill') { hand(ctx, hdF, c, wp, 1); joint(ctx, elF, 2.6); }
+      if (wp === 'sword') swordR(ctx, hdF, p.aF + p.eF + p.wpn, c);
+    }
+    MODE = 'fill';
     ctx.restore();
     return { hand: hdF };
   }
-  function torsoPath(ctx, pad) {
-    ctx.beginPath(); ctx.moveTo(-7.5 - pad, -34 - pad); ctx.quadraticCurveTo(0, -36 - pad, 7.5 + pad, -34 - pad);
-    ctx.lineTo(6 + pad, -18 + pad); ctx.quadraticCurveTo(0, -16 + pad, -6 - pad, -18 + pad); ctx.closePath();
+  function lin(ctx, x0, x1, c0, c1) { const g = ctx.createLinearGradient(x0 * LX, 0, x1 * LX, 0); g.addColorStop(0, c0); g.addColorStop(1, c1); return g; }
+  function clothDetail(ctx, id, c, T) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.28)'; ctx.lineWidth = 0.7;
+    // 中心の縫い目と、しわ
+    ctx.beginPath(); ctx.moveTo(...T([0.2, -28.5])); ctx.lineTo(...T([0.6, -34])); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(...T([-3.8, -29])); ctx.quadraticCurveTo(...T([-2.5, -31]), ...T([-3.6, -33])); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(...T([3.9, -29.5])); ctx.quadraticCurveTo(...T([2.6, -31.5]), ...T([3.8, -33.5])); ctx.stroke();
+    // 襟
+    ctx.fillStyle = id === 'goro' ? c.skin : shade(c.body, 1.25);
+    ctx.beginPath(); ctx.moveTo(...T([-2.6, -36.8])); ctx.lineTo(...T([0.4, -33.6])); ctx.lineTo(...T([3.2, -36.8])); ctx.closePath(); ctx.fill();
+    if (id === 'goro') { // タンクトップの肩と胸筋
+      ctx.fillStyle = shade(c.skin, 0.95); ctx.beginPath(); ctx.moveTo(...T([-6.2, -35])); ctx.lineTo(...T([-3.5, -37])); ctx.lineTo(...T([-3.2, -33])); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(...T([6.2, -35])); ctx.lineTo(...T([3.5, -37])); ctx.lineTo(...T([3.2, -33])); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.moveTo(...T([-3.5, -31.5])); ctx.quadraticCurveTo(...T([0, -30.2]), ...T([3.5, -31.5])); ctx.stroke();
+    }
+    if (id === 'kai') { ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.moveTo(...T([-3.4, -36.4])); ctx.lineTo(...T([-1.2, -30])); ctx.lineTo(...T([-0.2, -30])); ctx.lineTo(...T([-2.2, -36.6])); ctx.closePath(); ctx.fill(); }
+    if (id === 'shino') { ctx.strokeStyle = 'rgba(255,255,255,0.15)'; ctx.lineWidth = 1.2; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(...T([-4.5, -29.5 - i * 2.2])); ctx.lineTo(...T([4.5, -30.5 - i * 2.2])); ctx.stroke(); } }
   }
-  function shoe(ctx, ft, ang, c) {
-    ctx.save(); ctx.translate(ft[0], ft[1]); ctx.rotate(-ang * 0.3);
-    ctx.fillStyle = 'rgba(15,12,20,0.95)'; ctx.beginPath(); ctx.ellipse(1.5, 0.5, 5.2, 3.2, 0, 0, PI * 2); ctx.fill();
-    ctx.fillStyle = shade(c.body2, 0.55); ctx.beginPath(); ctx.ellipse(1.5, 0.3, 4.2, 2.4, 0, 0, PI * 2); ctx.fill();
+  function hand(ctx, hd, c, wp, k) {
+    const r = wp === 'fist' ? 3.1 : 1.9;
+    ctx.fillStyle = OUT; ctx.beginPath(); ctx.arc(hd[0], hd[1], r + 1, 0, PI * 2); ctx.fill();
+    const col = wp === 'fist' ? (c.glove || c.body2) : c.skin;
+    const g = ctx.createRadialGradient(hd[0] - r * 0.4, hd[1] - r * 0.4, 0.3, hd[0], hd[1], r); g.addColorStop(0, shade(col, 1.3 * k)); g.addColorStop(1, shade(col, 0.7 * k));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(hd[0], hd[1], r, 0, PI * 2); ctx.fill();
+    if (wp !== 'fist') { ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(hd[0] - 0.8, hd[1] + 0.6); ctx.lineTo(hd[0] + 1.0, hd[1] + 0.6); ctx.stroke(); }
+  }
+  function shoeR(ctx, ft, ang, c, k) {
+    ctx.save(); ctx.translate(ft[0], ft[1]); ctx.rotate(-ang * 0.35);
+    ctx.fillStyle = OUT; ctx.beginPath(); ctx.ellipse(1.6, 0.6, 4.6, 2.3, 0, 0, PI * 2); ctx.fill();
+    const col = shade(c.body2, 0.5 * k);
+    const g = ctx.createLinearGradient(0, -2, 0, 2); g.addColorStop(0, shade(c.body2, 0.75 * k)); g.addColorStop(1, col);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(1.6, 0.4, 3.8, 1.7, 0, 0, PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.beginPath(); ctx.ellipse(1.0, -0.3, 2.0, 0.6, 0, 0, PI * 2); ctx.fill();
     ctx.restore();
   }
-  function fist(ctx, hd, c, wp, k) {
-    const r = wp === 'fist' ? 4.2 : 2.6;
-    ctx.fillStyle = 'rgba(15,12,20,0.95)'; ctx.beginPath(); ctx.arc(hd[0], hd[1], r + 1, 0, PI * 2); ctx.fill();
-    ctx.fillStyle = wp === 'fist' ? shade(c.glove || c.body2, k) : shade(c.skin, k); ctx.beginPath(); ctx.arc(hd[0], hd[1], r, 0, PI * 2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.beginPath(); ctx.arc(hd[0] - r * 0.3, hd[1] - r * 0.3, r * 0.4, 0, PI * 2); ctx.fill();
-  }
-  function head(ctx, fg, p, outline) {
-    const c = fg.c.col, hx = 1.2, hy = -42 + p.head * 2;
-    ctx.save(); ctx.translate(hx, hy); ctx.rotate(p.head * 0.4);
-    if (outline) { ctx.fillStyle = 'rgba(15,12,20,0.95)'; ctx.beginPath(); ctx.arc(0, 0, 7.6, 0, PI * 2); ctx.fill(); ctx.restore(); return; }
-    const g = ctx.createRadialGradient(-2, -2.5, 1, 0, 0, 7); g.addColorStop(0, shade(c.skin, 1.12)); g.addColorStop(1, shade(c.skin, 0.78));
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 6.6, 0, PI * 2); ctx.fill();
+  function headR(ctx, fg, p, hc, tw) {
+    const c = fg.c.col, id = fg.c.id;
+    ctx.save(); ctx.translate(hc[0], hc[1]); ctx.rotate(tw * 0.5 + p.head * 0.35);
+    const rx = 3.9, ry = 4.6;
+    if (MODE === 'outline') { ctx.fillStyle = OUT; ctx.beginPath(); ctx.ellipse(0, 0, rx + 1.1, ry + 1.1, 0, 0, PI * 2); ctx.fill(); ctx.restore(); return; }
+    // 顔の面（あごを少し細く）
+    const g = ctx.createRadialGradient(-1.6, -1.8, 0.5, 0, 0, 5); g.addColorStop(0, shade(c.skin, 1.14)); g.addColorStop(0.7, c.skin); g.addColorStop(1, shade(c.skin, 0.7));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-rx, -0.8); ctx.quadraticCurveTo(-rx, -ry - 0.2, 0, -ry); ctx.quadraticCurveTo(rx, -ry - 0.2, rx, -0.8);
+    ctx.quadraticCurveTo(rx, 3.2, 0.6, ry); ctx.quadraticCurveTo(-rx + 0.6, 3.0, -rx, -0.8); ctx.closePath(); ctx.fill();
+    // 耳
+    ctx.fillStyle = shade(c.skin, 0.85); ctx.beginPath(); ctx.ellipse(-3.6, 0.0, 0.9, 1.4, 0, 0, PI * 2); ctx.fill();
+    // 目（3/4 向き。手前の目を大きく）
+    const eye = (ex, ey, w, h) => {
+      ctx.fillStyle = '#f4f2f0'; ctx.beginPath(); ctx.ellipse(ex, ey, w, h, 0, 0, PI * 2); ctx.fill();
+      ctx.fillStyle = id === 'kai' ? '#3d6fb5' : '#3a2416'; ctx.beginPath(); ctx.arc(ex + 0.15, ey, h * 0.72, 0, PI * 2); ctx.fill();
+      ctx.fillStyle = '#0d0a0c'; ctx.beginPath(); ctx.arc(ex + 0.2, ey, h * 0.38, 0, PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(ex - 0.15, ey - 0.25, h * 0.2, 0, PI * 2); ctx.fill();
+      ctx.strokeStyle = '#2a1a16'; ctx.lineWidth = 0.55; ctx.beginPath(); ctx.moveTo(ex - w, ey - h * 0.3); ctx.quadraticCurveTo(ex, ey - h - 0.35, ex + w, ey - h * 0.35); ctx.stroke();
+    };
+    eye(1.7, -0.5, 1.15, 0.85); eye(-1.3, -0.5, 0.85, 0.7);
+    // 眉、鼻、口
+    ctx.strokeStyle = shade(c.hair, 0.9); ctx.lineWidth = 0.7;
+    ctx.beginPath(); ctx.moveTo(0.6, -1.9); ctx.lineTo(2.9, -2.2); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-2.1, -1.9); ctx.lineTo(-0.5, -2.0); ctx.stroke();
+    ctx.strokeStyle = shade(c.skin, 0.62); ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(2.5, -0.3); ctx.lineTo(3.2, 1.0); ctx.lineTo(2.3, 1.3); ctx.stroke();
+    ctx.strokeStyle = '#7a3a3a'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(1.0, 2.5); ctx.quadraticCurveTo(1.9, 2.9, 2.8, 2.4); ctx.stroke();
     // 髪
     ctx.fillStyle = c.hair;
-    if (fg.c.id === 'kai') { ctx.beginPath(); ctx.moveTo(-7, -1); ctx.quadraticCurveTo(-6, -8, 0, -7.5); ctx.quadraticCurveTo(6, -8, 7, -2); ctx.lineTo(4, -3); ctx.lineTo(2, -5.5); ctx.lineTo(0, -3.5); ctx.lineTo(-2.5, -5.5); ctx.lineTo(-5, -3); ctx.closePath(); ctx.fill(); ctx.fillRect(-7.5, -3, 2, 4); }
-    else if (fg.c.id === 'goro') { ctx.beginPath(); ctx.arc(0, -1, 6.8, PI, 0); ctx.fill(); ctx.fillRect(-6.8, -1, 13.6, 1.5); ctx.fillStyle = shade(c.hair, 1.3); ctx.fillRect(-4, 3.5, 8, 2.2); }
-    else { ctx.beginPath(); ctx.arc(0, -0.5, 7, PI, 0); ctx.fill(); ctx.fillStyle = c.body2; ctx.fillRect(-7, 1.5, 14, 6); ctx.fillStyle = c.acc; ctx.fillRect(-7.2, -3.2, 14.4, 2.2); }
-    // 目
-    ctx.fillStyle = '#1a1418'; ctx.beginPath(); ctx.ellipse(3.2, -0.5, 1.1, 1.5, 0, 0, PI * 2); ctx.fill(); ctx.beginPath(); ctx.ellipse(-0.6, -0.5, 0.9, 1.4, 0, 0, PI * 2); ctx.fill();
-    ctx.strokeStyle = 'rgba(30,20,20,0.7)'; ctx.lineWidth = 0.9; ctx.beginPath(); ctx.moveTo(1.6, -2.8); ctx.lineTo(4.6, -2.4); ctx.stroke();
+    if (id === 'kai') {
+      ctx.beginPath(); ctx.moveTo(-rx - 0.3, -0.6); ctx.quadraticCurveTo(-rx - 0.4, -ry - 1.2, -0.5, -ry - 1.0); ctx.quadraticCurveTo(2.6, -ry - 1.2, 3.9, -2.4);
+      ctx.lineTo(2.6, -2.9); ctx.lineTo(1.4, -4.0); ctx.lineTo(0.2, -3.0); ctx.lineTo(-1.6, -4.1); ctx.lineTo(-2.8, -2.8); ctx.lineTo(-rx + 0.6, -1.4); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-3.5, -3.5); ctx.lineTo(-6.2, -3.0); ctx.lineTo(-4.2, -1.6); ctx.lineTo(-6.6, -0.4); ctx.lineTo(-4.0, 0.0); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = shade(c.hair, 1.35); ctx.lineWidth = 0.5; ctx.beginPath(); ctx.moveTo(-2.5, -4.2); ctx.lineTo(-4.5, -2.4); ctx.stroke();
+    } else if (id === 'goro') {
+      ctx.beginPath(); ctx.moveTo(-rx - 0.3, -1.2); ctx.quadraticCurveTo(-rx - 0.3, -ry - 0.9, 0, -ry - 0.8); ctx.quadraticCurveTo(rx + 0.2, -ry - 0.9, rx + 0.2, -2.2); ctx.quadraticCurveTo(0, -3.0, -rx - 0.3, -1.2); ctx.fill();
+      ctx.fillStyle = 'rgba(40,25,15,0.35)'; ctx.beginPath(); ctx.moveTo(-2.6, 1.6); ctx.quadraticCurveTo(0.5, 5.0, 3.6, 1.8); ctx.quadraticCurveTo(1.0, 3.4, -2.6, 1.6); ctx.fill(); // ひげ
+    } else {
+      ctx.beginPath(); ctx.moveTo(-rx - 0.4, -0.5); ctx.quadraticCurveTo(-rx - 0.4, -ry - 1.0, 0, -ry - 0.9); ctx.quadraticCurveTo(rx + 0.3, -ry - 1.0, rx + 0.3, -1.6);
+      ctx.lineTo(2.4, -2.6); ctx.lineTo(1.0, -1.6); ctx.lineTo(-0.6, -2.8); ctx.lineTo(-2.0, -1.7); ctx.lineTo(-rx + 0.4, -1.0); ctx.closePath(); ctx.fill();
+      // 口元のマスクと額のはちまき
+      ctx.fillStyle = c.body2; ctx.beginPath(); ctx.moveTo(-rx + 0.2, 0.9); ctx.quadraticCurveTo(0.6, 1.4, rx, 0.9); ctx.quadraticCurveTo(rx, 3.6, 0.6, ry + 0.2); ctx.quadraticCurveTo(-rx + 0.8, 3.4, -rx + 0.2, 0.9); ctx.fill();
+      ctx.fillStyle = c.acc; ctx.fillRect(-rx - 0.6, -3.3, rx * 2 + 1.2, 1.3);
+      ctx.strokeStyle = c.acc; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-rx - 0.4, -2.6); ctx.quadraticCurveTo(-8, -1, -10.5, 1.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-rx - 0.4, -2.6); ctx.quadraticCurveTo(-7.5, -3.5, -10, -4.5); ctx.stroke();
+    }
     ctx.restore();
   }
-  function sword(ctx, hd, ang, c, outline) {
-    ctx.save(); ctx.translate(hd[0], hd[1]); ctx.rotate(-ang);
-    // 上向きの座標系で描く（ang=0で下向きだったものを rotate で合わせる）
-    ctx.rotate(PI);
-    if (outline) { ctx.fillStyle = 'rgba(15,12,20,0.95)'; ctx.beginPath(); ctx.moveTo(-2.6, -2); ctx.lineTo(-1.2, -25); ctx.lineTo(0, -28); ctx.lineTo(1.2, -25); ctx.lineTo(2.6, -2); ctx.closePath(); ctx.fill(); ctx.fillRect(-5.5, -3, 11, 2.6); }
+  function swordR(ctx, hd, ang, c) {
+    ctx.save(); ctx.translate(hd[0], hd[1]); ctx.rotate(-ang); ctx.rotate(PI);
+    if (MODE === 'outline') { ctx.fillStyle = OUT; ctx.beginPath(); ctx.moveTo(-2.4, -1.5); ctx.lineTo(-1.2, -25.5); ctx.lineTo(0, -28.5); ctx.lineTo(1.2, -25.5); ctx.lineTo(2.4, -1.5); ctx.closePath(); ctx.fill(); ctx.fillRect(-5.5, -2.6, 11, 2.4); }
     else {
-      const g = ctx.createLinearGradient(-2, 0, 2, 0); g.addColorStop(0, '#eef2f8'); g.addColorStop(0.5, '#9aa4b4'); g.addColorStop(1, '#dfe5ee');
-      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-1.8, -2); ctx.lineTo(-0.9, -24); ctx.lineTo(0, -27); ctx.lineTo(0.9, -24); ctx.lineTo(1.8, -2); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, -23); ctx.stroke();
-      ctx.fillStyle = shade(c.acc, 0.9); ctx.fillRect(-4.8, -2.4, 9.6, 1.8); ctx.fillStyle = '#4a3220'; ctx.fillRect(-1.2, -0.6, 2.4, 4);
+      const g = ctx.createLinearGradient(-1.6, 0, 1.6, 0); g.addColorStop(0, '#f6f8fc'); g.addColorStop(0.48, '#a9b2c2'); g.addColorStop(0.52, '#7e8797'); g.addColorStop(1, '#e3e8f0');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-1.6, -1.5); ctx.lineTo(-0.8, -24.5); ctx.lineTo(0, -27.5); ctx.lineTo(0.8, -24.5); ctx.lineTo(1.6, -1.5); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = shade(c.acc, 0.85); ctx.fillRect(-4.8, -2.2, 9.6, 1.6); ctx.fillStyle = '#4a3220'; ctx.fillRect(-1.1, -0.6, 2.2, 4.2);
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 0.5; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-1.1, 0 + i); ctx.lineTo(1.1, 0.6 + i); ctx.stroke(); }
     }
     ctx.restore();
   }
@@ -319,7 +409,7 @@
       ctx.fillStyle = 'rgba(10,12,24,0.72)'; roundRect(ctx, x, y, w, h, 8); ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 1; ctx.stroke();
       ctx.fillStyle = i === 0 ? '#ffc23a' : '#4a8cff'; roundRect(ctx, x, y, w, 4, 2); ctx.fill();
-      ctx.save(); ctx.translate(x + 22, y + 52); ctx.scale(0.85, 0.85); body(ctx, fg, POSES.idle, 0, 0, 1); ctx.restore();
+      ctx.save(); ctx.translate(x + 22, y + 53); ctx.scale(0.92, 0.92); body(ctx, fg, POSES.idle, 0, 0, 1); ctx.restore();
       ctx.textAlign = 'left'; ctx.fillStyle = '#e8ecf4'; ctx.font = '700 10px "Noto Sans JP", system-ui, sans-serif'; ctx.fillText(`${i + 1}P  ${fg.name}`, x + 46, y + 18);
       const pc = Math.round(fg.percent), col = pc < 50 ? '#ffffff' : pc < 100 ? '#ffd45a' : pc < 150 ? '#ff8a3a' : '#ff3a3a';
       ctx.fillStyle = col; ctx.font = '900 24px "Noto Sans JP", system-ui, sans-serif'; ctx.fillText(`${pc}`, x + 46, y + 45);
@@ -328,7 +418,7 @@
     });
   }
   function portrait(canvas, ch) {
-    const ctx = canvas.getContext('2d'); const s = canvas.width / 30;
+    const ctx = canvas.getContext('2d'); const s = canvas.height / 58;
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save(); ctx.translate(canvas.width / 2, canvas.height - 3 * s); ctx.scale(s, s);
     body(ctx, { c: ch, trail: [], wtrail: [] }, POSES.idle, 0, 0, 1);
